@@ -28,15 +28,15 @@
 - [ ] Crear sistema de recuperación de sesión
 
 ## Asistente de IA
-- [ ] Integrar LLM para sugerencias contextuales
-- [ ] Implementar generación de preguntas orientadoras
-- [ ] Implementar retroalimentación pedagógica
-- [ ] Crear prompts específicos para cada fase
-- [ ] Añadir interfaz de chat/sugerencias en cada fase
+- [x] Integrar LLM para sugerencias contextuales
+- [x] Implementar generación de preguntas orientadoras
+- [x] Implementar retroalimentación pedagógica
+- [x] Crear prompts específicos para cada fase
+- [x] Añadir interfaz de chat/sugerencias en cada fase
 
 ## Vista Previa y Exportación
-- [ ] Crear vista previa del documento ATE completo
-- [ ] Implementar exportación a PDF
+- [x] Crear vista previa del documento ATE completo
+- [x] Implementar exportación a PDF
 - [ ] Diseñar plantilla de documento PDF
 - [ ] Añadir opciones de personalización de PDF
 

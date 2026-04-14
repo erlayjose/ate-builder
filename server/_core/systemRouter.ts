@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
-import { adminProcedure, publicProcedure, router } from "./trpc";
+import { adminProcedure, publicProcedure, protectedProcedure, router } from "./trpc";
+import { invokeLLM } from "./llm";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -25,5 +26,37 @@ export const systemRouter = router({
       return {
         success: delivered,
       } as const;
+    }),
+
+  generateAISuggestion: protectedProcedure
+    .input(
+      z.object({
+        prompt: z.string().min(1, "prompt is required"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: "Eres un asistente experto en educación tecnológica y diseño de Actividades Tecnológicas Escolares (ATE). Proporciona sugerencias prácticas, específicas y constructivas.",
+            },
+            {
+              role: "user",
+              content: input.prompt,
+            },
+          ],
+        });
+
+        const content = response.choices[0]?.message?.content || "";
+        return {
+          content,
+          success: true,
+        };
+      } catch (error) {
+        console.error("Error generating AI suggestion:", error);
+        throw new Error("Failed to generate AI suggestion");
+      }
     }),
 });

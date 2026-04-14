@@ -10,6 +10,7 @@ import Phase3 from "./phases/Phase3";
 import Phase4 from "./phases/Phase4";
 import Phase5 from "./phases/Phase5";
 import Phase6 from "./phases/Phase6";
+import ATEPreview from "./ATEPreview";
 import { toast } from "sonner";
 
 interface ATEWizardProps {
@@ -30,6 +31,8 @@ export default function ATEWizard({ ateId, onComplete }: ATEWizardProps) {
   const [currentPhase, setCurrentPhase] = useState(1);
   const [faseData, setFaseData] = useState<Record<number, any>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const { data: ate } = trpc.ates.getById.useQuery({ id: ateId });
 
   const { data: fases, isLoading } = trpc.ates.getFases.useQuery({ ateId });
   const updateFaseMutation = trpc.ates.updateFase.useMutation();
@@ -89,6 +92,46 @@ export default function ATEWizard({ ateId, onComplete }: ATEWizardProps) {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const element = document.createElement("div");
+      element.innerHTML = `
+        <h1>${ate?.nombre}</h1>
+        <p>Tipo: ${ate?.tipo}</p>
+        <p>Grado: ${ate?.grado || "No especificado"}</p>
+        <hr />
+        ${fases
+          ?.map(
+            (fase) => `
+          <h2>Fase ${fase.numeroFase}: ${PHASES[fase.numeroFase - 1].title}</h2>
+          <pre>${JSON.stringify(fase.contenido, null, 2)}</pre>
+        `
+          )
+          .join("")}
+      `;
+
+      const opt = {
+        margin: 10,
+        filename: `${ate?.nombre}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+      };
+
+      // Usar html2pdf si está disponible
+      const html2pdf = (window as any).html2pdf;
+      if (html2pdf) {
+        html2pdf().set(opt).from(element).save();
+        toast.success("PDF exportado correctamente");
+      } else {
+        toast.error("No se pudo exportar el PDF");
+      }
+    } catch (error) {
+      toast.error("Error al exportar PDF");
+      console.error(error);
+    }
+  };
+
   const progressPercentage = (currentPhase / 6) * 100;
 
   if (isLoading) {
@@ -129,101 +172,109 @@ export default function ATEWizard({ ateId, onComplete }: ATEWizardProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Progress Bar */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <CardTitle>Fase {currentPhase} de 6</CardTitle>
-              <CardDescription>{PHASES[currentPhase - 1].title}</CardDescription>
+    <>
+      <div className="space-y-6">
+        {/* Progress Bar */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <CardTitle>Fase {currentPhase} de 6</CardTitle>
+                <CardDescription>{PHASES[currentPhase - 1].title}</CardDescription>
+              </div>
+              <div className="text-3xl">{PHASES[currentPhase - 1].icon}</div>
             </div>
-            <div className="text-3xl">{PHASES[currentPhase - 1].icon}</div>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-        </CardHeader>
-      </Card>
+            <Progress value={progressPercentage} className="h-2" />
+          </CardHeader>
+        </Card>
 
-      {/* Phase Indicators */}
-      <div className="grid grid-cols-6 gap-2">
-        {PHASES.map((phase) => (
-          <button
-            key={phase.number}
-            onClick={() => setCurrentPhase(phase.number)}
-            className={`p-3 rounded-lg transition-all text-center text-sm font-medium ${
-              phase.number === currentPhase
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : phase.number < currentPhase
-                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            <div className="text-lg mb-1">{phase.icon}</div>
-            <div className="text-xs truncate">{phase.number}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Phase Content */}
-      <Card className="min-h-96">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">{PHASES[currentPhase - 1].icon}</span>
-            {PHASES[currentPhase - 1].title}
-          </CardTitle>
-          <CardDescription>
-            Completa los campos de esta fase y continúa con la siguiente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {renderPhaseComponent()}
-        </CardContent>
-      </Card>
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={handlePrevious}
-          disabled={currentPhase === 1}
-          className="gap-2"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Anterior
-        </Button>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => {
-              toast.info("Función de vista previa próximamente disponible");
-            }}
-          >
-            <FileText className="w-4 h-4" />
-            Vista Previa
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => {
-              toast.info("Función de exportación próximamente disponible");
-            }}
-          >
-            <Save className="w-4 h-4" />
-            Exportar PDF
-          </Button>
+        {/* Phase Indicators */}
+        <div className="grid grid-cols-6 gap-2">
+          {PHASES.map((phase) => (
+            <button
+              key={phase.number}
+              onClick={() => setCurrentPhase(phase.number)}
+              className={`p-3 rounded-lg transition-all text-center text-sm font-medium ${
+                phase.number === currentPhase
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : phase.number < currentPhase
+                  ? "bg-green-100 text-green-700 hover:bg-green-200"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <div className="text-lg mb-1">{phase.icon}</div>
+              <div className="text-xs truncate">{phase.number}</div>
+            </button>
+          ))}
         </div>
 
-        <Button
-          onClick={handleNext}
-          disabled={currentPhase === 6}
-          className="gap-2"
-        >
-          Siguiente
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+        {/* Phase Content */}
+        <Card className="min-h-96">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">{PHASES[currentPhase - 1].icon}</span>
+              {PHASES[currentPhase - 1].title}
+            </CardTitle>
+            <CardDescription>
+              Completa los campos de esta fase y continúa con la siguiente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {renderPhaseComponent()}
+          </CardContent>
+        </Card>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between items-center">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentPhase === 1}
+            className="gap-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Anterior
+          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowPreview(true)}
+            >
+              <FileText className="w-4 h-4" />
+              Vista Previa
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleExportPDF}
+            >
+              <Save className="w-4 h-4" />
+              Exportar PDF
+            </Button>
+          </div>
+
+          <Button
+            onClick={handleNext}
+            disabled={currentPhase === 6}
+            className="gap-2"
+          >
+            Siguiente
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
-    </div>
+
+      {/* Preview Modal */}
+      {showPreview && ate && fases && (
+        <ATEPreview
+          ate={ate}
+          fases={fases}
+          onClose={() => setShowPreview(false)}
+          onExportPDF={handleExportPDF}
+        />
+      )}
+    </>
   );
 }
