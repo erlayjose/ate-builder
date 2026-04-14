@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { Plus, Edit2, Copy, Trash2, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { getLoginUrl } from "@/const";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
@@ -97,7 +98,7 @@ export default function Home() {
             <p className="text-muted-foreground mb-6">
               Inicia sesión para comenzar a crear tus Actividades Tecnológicas Escolares
             </p>
-            <Button size="lg" className="w-full">
+            <Button size="lg" className="w-full" onClick={() => window.location.href = getLoginUrl()}>
               Iniciar Sesión
             </Button>
           </CardContent>
